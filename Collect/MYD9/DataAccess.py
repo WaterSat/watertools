@@ -195,14 +195,6 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, band, resolut
     sizeY = int((TilesVertical[1] - TilesVertical[0] + 1) * 4800/size_factor)
     DataTot = np.zeros((sizeY, sizeX))
 
-    # Load accounts
-    BEARER = watertools.Functions.Random.Get_Username_PWD.GET('NASA_BEARER')
-
-    s = requests.Session()  
-    headers = {
-        'Authorization': 'Bearer %s'%BEARER[0]
-        }                
-
     # Download the MODIS NDVI data
     if resolution == "250m":
         #url = 'https://e4ftl01.cr.usgs.gov/MOLT/MOD09GQ.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
@@ -212,7 +204,7 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, band, resolut
         #url = 'https://e4ftl01.cr.usgs.gov/MOLT/MOD09GA.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
         url = "https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD09GA/%s/%03s" %(Date.strftime('%Y'),  Date.strftime('%j'))
         letter = "A"
-
+                    
     # Create the Lat and Long of the MODIS tile in meters
     for Vertical in range(int(TilesVertical[0]), int(TilesVertical[1])+1):
         Distance = 231.65635826395834 * size_factor # resolution of a MODIS pixel in meter
@@ -236,71 +228,86 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, band, resolut
                     if os.path.exists(hdf_file):
                         downloaded = 1
                         file_name = hdf_file
-
+                                
             if not downloaded == 1:
-                
-                r = s.get(''.join([url,'?fields=all&format=json']), headers=headers, timeout = 2000)
-                if r.status_code == 200:            
-                    f = r.text 
-                else:
-                    print("Got an ERROR 404 not connected!!!")
-                    
-                # Sum all the files on the server
-                soup = BeautifulSoup(f, "lxml")    
-                    
+        
                 try:
-
+                    # Get files on FTP server
+                    if sys.version_info[0] == 3:
+                        f = urllib.request.urlopen(url)
+        
+                    if sys.version_info[0] == 2:
+                        f = urllib2.urlopen(url)
+        
+                    # Sum all the files on the server
+                    soup = BeautifulSoup(f, "lxml")
                     for i in soup.findAll('a', attrs = {'href': re.compile('(?i)(hdf)$')}):
-    
-                        # Find the file with the wanted tile number
-                        Vfile=str(i)[80:82]
-                        Hfile=str(i)[77:79]
+        
+                        # Regex pattern to extract hXX and vXX
+                        href = i.get('href')  # <-- Get the href as a string
+                        match = re.search(r'h(\d{2})v(\d{2})', href)
+          
+                        if match:
+                            Hfile = int(match.group(1))
+                            Vfile = int(match.group(2))
+         
+                        else:
+                            print("No match found.")     
+                            
                         if int(Vfile) is int(Vertical) and int(Hfile) is int(Horizontal):
-                       
+        
                             # Define the whole url name
                             if sys.version_info[0] == 3:
                                 full_url = urllib.parse.urljoin(url, i['href'])
-    
+        
                             if sys.version_info[0] == 2:
                                 full_url = urlparse.urljoin(url, i['href'])
-    
+        
                             # if not downloaded try to download file
                             while downloaded == 0:
-    
+        
                                 try:# open http and download whole .hdf
                                     nameDownload = full_url
-                                    file_name = os.path.join(output_folder, nameDownload.split('/')[-1])
+                                    file_name = os.path.join(output_folder,nameDownload.split('/')[-1])
                                     if os.path.isfile(file_name):
+                                        print("file ", file_name, " already exists")
                                         downloaded = 1
                                     else:
-                                                           
-                                        r = s.get(nameDownload, headers=headers, stream=True, timeout = 2000)
-                                        with open(file_name, 'wb') as f:
-                                            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                                                if chunk:  # filter out keep-alive new chunks
-                                                    f.write(chunk)
-                                                    # f.flush()                                       
-                                                              
-                                        statinfo = os.stat(file_name)
-                                        # Say that download was succesfull
-                                        if int(statinfo.st_size) > 10000:
-                                             downloaded = 1
-                                        else:
-                                            print("Size is too small")
-    
+                                        try:
+                                            NASA_BEARER, passw = watertools.Functions.Random.Get_Username_PWD.GET('NASA_BEARER')
+                                            head = {"Authorization": "Bearer %s" %NASA_BEARER}
+                                            #print(head)
+                                            print(url)
+                                            r = requests.get(full_url, headers = head, stream=True, timeout = 2000)
+                    
+                                            #print(r.status_code)
+                                            if r.status_code == 200:
+                                                
+                                                with open(file_name, 'wb') as f:
+                                                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                                                        if chunk:  # filter out keep-alive new chunks
+                                                            f.write(chunk)
+                                            else:
+                                                print("Something went wrong downloading %s" %url)
+                             
+                                        except:
+                                            print("Was not able to download: %s" %full_url)
+        
+                                
+        
                                 # If download was not succesfull
                                 except:
-    
+        
                                     # Try another time
                                     N = N + 1
-    
-        				        # Stop trying after 10 times
-                                if N == 10:
-                                    print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
-                                    downloaded = 1
-
+        
+        				  # Stop trying after 10 times
+                            if N == 10:
+                                print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
+                                downloaded = 1
+                                
                 except:
-                        print("Url not found: %s" %url)                                                 
+                        print("Url not found: %s" %url)                                            
                                 
             try:
                 # Open .hdf only band with NDVI and collect all tiles to one array

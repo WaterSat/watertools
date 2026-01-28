@@ -992,10 +992,10 @@ def resize_array_example(Array_in, Array_example, method=1):
 
             if sys.version_info[0] == 2:
                 import scipy.misc as misc
-                Array_out_slice= misc.imresize(np.float_(Array_in_slice), size, interp=interpolation_method, mode='F')
+                Array_out_slice= misc.imresize(np.float64(Array_in_slice), size, interp=interpolation_method, mode='F')
             if sys.version_info[0] == 3:
                 import skimage.transform as transform
-                Array_out_slice= transform.resize(np.float_(Array_in_slice), size, order=interpolation_number)
+                Array_out_slice= transform.resize(np.float64(Array_in_slice), size, order=interpolation_number)
                 
             Array_out[i,:,:] = Array_out_slice
 
@@ -1004,10 +1004,10 @@ def resize_array_example(Array_in, Array_example, method=1):
         size=tuple(Array_out_shape)
         if sys.version_info[0] == 2:
             import scipy.misc as misc
-            Array_out= misc.imresize(np.float_(Array_in), size, interp=interpolation_method, mode='F')
+            Array_out= misc.imresize(np.float64(Array_in), size, interp=interpolation_method, mode='F')
         if sys.version_info[0] == 3:
             import skimage.transform as transform
-            Array_out= transform.resize(np.float_(Array_in), size, order=interpolation_number)
+            Array_out= transform.resize(np.float64(Array_in), size, order=interpolation_number)
       
     else:
         print('only 2D or 3D dimensions are supported')

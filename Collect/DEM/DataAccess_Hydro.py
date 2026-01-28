@@ -31,6 +31,12 @@ def DownloadData(output_folder, latlim, lonlim, parameter, resolution):
                     from the internet
     """
     # Define parameter depedent variables
+    if parameter == "acc_3s":
+        para_name = "ACC"
+        unit = "-"
+        resolution = '3s'
+        parameter = 'acc'
+
     if parameter == "dir_3s":
         para_name = "DIR"
         unit = "-"
@@ -406,7 +412,11 @@ def Find_Document_Names(latlim, lonlim, parameter):
                 DirectionLat = "s"
             else:
                 DirectionLat = "n"
-
+                
+            if parameter == "acc":
+                DirectionLon = DirectionLon.capitalize()
+                DirectionLat = DirectionLat.capitalize()
+                
             name.append(str(DirectionLat + str('%02d' % int(abs(latname))) +
                         DirectionLon + str('%03d' % int(abs(lonname))) +
                         "_%s.zip" %parameter))
@@ -431,6 +441,9 @@ def Download_Data(nameFile, output_folder_trash, parameter,para_name,resolution)
             para_name2 = para_name.lower()
             # info about the roots http://www.hydrosheds.org/download/getroot
             if resolution == '3s':
+                     # https://data.hydrosheds.org/file/hydrosheds-v1-acc/na_acc_3s/N30W120_acc.zip
+                     # https://data.hydrosheds.org/file/hydrosheds-v1-acc/na_acc_3s/N30W120_acc.zip
+                     # https://data.hydrosheds.org/file/hydrosheds-v1-acc/af_acc_3s/N10W020_acc.zip
                 url="https://data.hydrosheds.org/file/hydrosheds-v1-%s/%s_%s_%s/%s" %(para_name2, continent, para_name2, resolution, nameFile)
             if resolution == '15s' or resolution == '30s':
                 url="https://data.hydrosheds.org/file/hydrosheds-v1-%s/%s" %(para_name2, nameFile)

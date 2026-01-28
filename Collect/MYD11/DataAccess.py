@@ -229,6 +229,7 @@ def Collect_data(TilesHorizontal, TilesVertical, Date, username, password, outpu
     Date -- 'yyyy-mm-dd'
     output_folder -- 'C:/file/to/path/'
     '''
+    import watertools
 
     # Make a new tile for the data
     sizeX = int((TilesHorizontal[1] - TilesHorizontal[0] + 1) * 1200)
@@ -250,9 +251,11 @@ def Collect_data(TilesHorizontal, TilesVertical, Date, username, password, outpu
 
             # Create the URL to the LST MODIS data
             if TimeStep == 8:
-                url = 'https://e4ftl01.cr.usgs.gov/MOLA/MYD11A2.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+                #url = 'https://e4ftl01.cr.usgs.gov/MOLA/MYD11A2.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+                url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD11A2/%s/%03s/'%(int(Date.strftime('%Y')), Date.strftime('%j'))
             if TimeStep == 1:
-                url = 'https://e4ftl01.cr.usgs.gov/MOLA/MYD11A1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+                #url = 'https://e4ftl01.cr.usgs.gov/MOLA/MYD11A1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+                url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MYD11A1/%s/%03s/'%(int(Date.strftime('%Y')), Date.strftime('%j'))
 
 		    # Reset the begin parameters for downloading
             downloaded = 0
@@ -287,9 +290,17 @@ def Collect_data(TilesHorizontal, TilesVertical, Date, username, password, outpu
                     soup = BeautifulSoup(f, "lxml")
                     for i in soup.findAll('a', attrs = {'href': re.compile('(?i)(hdf)$')}):
     
-                        # Find the file with the wanted tile number
-                        Vfile=str(i)[30:32]
-                        Hfile=str(i)[27:29]
+                        # Regex pattern to extract hXX and vXX
+                        href = i.get('href')  # <-- Get the href as a string
+                        match = re.search(r'h(\d{2})v(\d{2})', href)
+          
+                        if match:
+                            Hfile = int(match.group(1))
+                            Vfile = int(match.group(2))
+         
+                        else:
+                            print("No match found.")     
+                            
                         if int(Vfile) is int(Vertical) and int(Hfile) is int(Horizontal):
     
                             # Define the whole url name
@@ -309,21 +320,27 @@ def Collect_data(TilesHorizontal, TilesVertical, Date, username, password, outpu
                                         print("file ", file_name, " already exists")
                                         downloaded = 1
                                     else:
-                                        x = requests.get(nameDownload, allow_redirects = False)
                                         try:
-                                            y = requests.get(x.headers['location'], auth = (username, password))
+                                            NASA_BEARER, passw = watertools.Functions.Random.Get_Username_PWD.GET('NASA_BEARER')
+                                            head = {"Authorization": "Bearer %s" %NASA_BEARER}
+                                            #print(head)
+                                            print(url)
+                                            r = requests.get(full_url, headers = head, stream=True, timeout = 2000)
+                    
+                                            #print(r.status_code)
+                                            if r.status_code == 200:
+                                                
+                                                with open(file_name, 'wb') as f:
+                                                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                                                        if chunk:  # filter out keep-alive new chunks
+                                                            f.write(chunk)
+                                            else:
+                                                print("Something went wrong downloading %s" %url)
+                             
                                         except:
-                                            from requests.packages.urllib3.exceptions import InsecureRequestWarning
-                                            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+                                            print("Was not able to download: %s" %full_url)
     
-                                            y = requests.get(x.headers['location'], auth = (username, password), verify = False)
-                                        z = open(file_name, 'wb')
-                                        z.write(y.content)
-                                        z.close()
-                                        statinfo = os.stat(file_name)
-                                        # Say that download was succesfull
-                                        if int(statinfo.st_size) > 10000:
-                                             downloaded = 1
+                                
     
                                 # If download was not succesfull
                                 except:

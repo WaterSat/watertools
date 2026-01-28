@@ -100,21 +100,21 @@ def Calc_Property(Dir, latlim, lonlim, SL, GF = True):
         SOC = dest_soc.GetRasterBand(1).ReadAsArray()
         Silt = dest_silt.GetRasterBand(1).ReadAsArray()        
 
-        Clay = np.float_(Clay)
+        Clay = np.float64(Clay)
         '''
         try:
            Clay = RC.gap_filling(Clay, 0, method = 1)
         except:
             pass
         '''        
-        OM = np.float_(SOC) * 1.72 # organic carbon to organic matter g/kg
+        OM = np.float64(SOC) * 1.72 # organic carbon to organic matter g/kg
         '''
         try:
            OM = RC.gap_filling(OM, 0, method = 1)
         except:
             pass
         '''
-        Silt = np.float_(Silt)
+        Silt = np.float64(Silt)
         '''        
         try:
            Silt = RC.gap_filling(Silt, 0, method = 1)
@@ -132,7 +132,7 @@ def Calc_Property(Dir, latlim, lonlim, SL, GF = True):
         # Calculate bulk density
         bulk_dens1 = dest_bulk.GetRasterBand(1).ReadAsArray()
         bulk_dens1 = bulk_dens1/1000 # kg/m3 to gr/cm3
-        bulk_dens1 = np.float_(bulk_dens1)
+        bulk_dens1 = np.float64(bulk_dens1)
         '''           
         try:
            bulk_dens1 = RC.gap_filling(bulk_dens1, 0, method = 1)

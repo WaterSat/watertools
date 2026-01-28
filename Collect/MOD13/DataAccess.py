@@ -176,8 +176,8 @@ def Make_TimeStamps(Startdate,Enddate):
     Startdate = (str(Year) + '-' + str(Month) + '-' + str(Day))
 
     # Create the start and end data for the whole year
-    YearStartDate = pd.date_range(Startdate, Enddate, freq = 'AS')
-    YearEndDate = pd.date_range(Startdate, Enddate, freq = 'A')
+    YearStartDate = pd.date_range(Startdate, Enddate, freq = 'YS')
+    YearEndDate = pd.date_range(Startdate, Enddate, freq = 'YE')
 
     # Define the amount of years that are involved
     AmountOfYear = YearEnd - Year
@@ -222,9 +222,6 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
     sizeY = int((TilesVertical[1] - TilesVertical[0] + 1) * 4800)
     DataTot = np.zeros((sizeY, sizeX))
 
-    # Load accounts
-    username, password = watertools.Functions.Random.Get_Username_PWD.GET('NASA')
-
     # Create the Lat and Long of the MODIS tile in meters
     for Vertical in range(int(TilesVertical[0]), int(TilesVertical[1])+1):
         Distance = 231.65635826395834 # resolution of a MODIS pixel in meter
@@ -238,8 +235,9 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
             N=0
 
             # Download the MODIS NDVI data
-            url = 'https://e4ftl01.cr.usgs.gov/MOLT/MOD13Q1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
-
+            #url = 'https://e4ftl01.cr.usgs.gov/MOLT/MOD13Q1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+            url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MOD13Q1/%s/%03s/'%(int(Date.strftime('%Y')), Date.strftime('%j'))
+            
 	         # Check the library given by user
             if hdf_library is not None:
                 os.chdir(hdf_library)
@@ -263,12 +261,20 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
                         f = urllib2.urlopen(url)
 
                     # Sum all the files on the server
-                    soup = BeautifulSoup(f, "html.parser")
+                    soup = BeautifulSoup(f, "lxml")
                     for i in soup.findAll('a', attrs = {'href': re.compile('(?i)(hdf)$')}):
     
-                        # Find the file with the wanted tile number
-                        Vfile=str(i)[30:32]
-                        Hfile=str(i)[27:29]
+                        # Regex pattern to extract hXX and vXX
+                        href = i.get('href')  # <-- Get the href as a string
+                        match = re.search(r'h(\d{2})v(\d{2})', href)
+          
+                        if match:
+                            Hfile = int(match.group(1))
+                            Vfile = int(match.group(2))
+         
+                        else:
+                            print("No match found.")     
+                            
                         if int(Vfile) is int(Vertical) and int(Hfile) is int(Horizontal):
     
                             # Define the whole url name
@@ -285,24 +291,30 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
                                     nameDownload = full_url
                                     file_name = os.path.join(output_folder,nameDownload.split('/')[-1])
                                     if os.path.isfile(file_name):
-                                        #print "file ", file_name, " already exists"
+                                        print("file ", file_name, " already exists")
                                         downloaded = 1
                                     else:
-                                        x = requests.get(nameDownload, allow_redirects = False)
                                         try:
-                                            y = requests.get(x.headers['location'], auth = (username, password))
+                                            NASA_BEARER, passw = watertools.Functions.Random.Get_Username_PWD.GET('NASA_BEARER')
+                                            head = {"Authorization": "Bearer %s" %NASA_BEARER}
+                                            #print(head)
+                                            print(url)
+                                            r = requests.get(full_url, headers = head, stream=True, timeout = 2000)
+                    
+                                            #print(r.status_code)
+                                            if r.status_code == 200:
+                                                
+                                                with open(file_name, 'wb') as f:
+                                                    for chunk in r.iter_content(chunk_size=1024 * 1024):
+                                                        if chunk:  # filter out keep-alive new chunks
+                                                            f.write(chunk)
+                                            else:
+                                                print("Something went wrong downloading %s" %url)
+                             
                                         except:
-                                            from requests.packages.urllib3.exceptions import InsecureRequestWarning
-                                            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+                                            print("Was not able to download: %s" %full_url)
     
-                                            y = requests.get(x.headers['location'], auth = (username, password), verify = False)
-                                        z = open(file_name, 'wb')
-                                        z.write(y.content)
-                                        z.close()
-                                        statinfo = os.stat(file_name)
-                                        # Say that download was succesfull
-                                        if int(statinfo.st_size) > 10000:
-                                             downloaded = 1
+                                
     
                                 # If download was not succesfull
                                 except:
@@ -310,14 +322,13 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
                                     # Try another time
                                     N = N + 1
     
-                				           # Stop trying after 10 times
-                                    if N == 10:
-                                        print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
-                                        downloaded = 1
-
+        				  # Stop trying after 10 times
+                            if N == 10:
+                                print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
+                                downloaded = 1
+                                
                 except:
                         print("Url not found: %s" %url)     
-
                                        
             try:
                 # Open .hdf only band with NDVI and collect all tiles to one array
@@ -351,7 +362,7 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
 
                 proj='PROJCS["unnamed",GEOGCS["Unknown datum based upon the custom spheroid",DATUM["Not specified (based on custom spheroid)",SPHEROID["Custom spheroid",6371007.181,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Sinusoidal"],PARAMETER["longitude_of_center",0],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["Meter",1]]'
                 data=np.ones((4800,4800)) * (-3000)
-                countYdata=(TilesVertical[1] - TilesVertical[0] + 2) - countY
+                countYdata=int((TilesVertical[1] - TilesVertical[0] + 2) - countY)
                 DataTot[(countYdata - 1) * 4800:countYdata * 4800,(countX - 1) * 4800:countX * 4800] = data * 0.0001
 
     # Make geotiff file

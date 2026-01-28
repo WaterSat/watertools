@@ -12,9 +12,14 @@ import watertools
 from cryptography.fernet import Fernet
 
 def GET(server):
-    
-    path = os.path.dirname(watertools.__file__)
-    
+
+    if getattr(sys, 'frozen', False):
+        # Running inside PyInstaller EXE
+        path = os.path.join(sys._MEIPASS, "watertools")
+    else:
+        # Running in normal Python
+        path = os.path.dirname(watertools.__file__)
+        
     key_file = os.path.join(path, "wa_key.txt")
     
     if not os.path.exists(key_file):

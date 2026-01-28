@@ -52,17 +52,22 @@ def WAPOR(output_folder, Startdate, Enddate, latlim, lonlim, Parameter, Area = N
     auth_token, pwd = watertools.Functions.Random.Get_Username_PWD.GET("WAPOR")
     
     # Define server         
-    url = 'https://io.apps.fao.org/gismgr/api/v1/query'
+    url = 'https://data.apps.fao.org/gismgr/api/v2/catalog/workspaces'
            
     # Login into WAPOR
-    sign_in= 'https://io.apps.fao.org/gismgr/api/v1/iam/sign-in'
-    resp_vp=requests.post(sign_in,headers={'X-GISMGR-API-KEY':auth_token})
+    sign_in= 'https://data.apps.fao.org/gismgr/api/v2/catalog/identity/accounts:signInWithApiKey'
+    header = {"X-GISMGR-API-KEY":auth_token,
+              "Content-length": "0",
+              "Accept": "application/json"
+             } 
+    
+    resp_vp=requests.post(sign_in,headers=header)
     resp_vp = resp_vp.json()
-    token = resp_vp['response']['accessToken']
+    token = resp_vp['response']['idToken']
     
     # Set header type
     header = {"Authorization": "Bearer " + token,
-              "Content-type": "application/json;charset=UTF-8",
+              "Content-type": "application/json",
               "Accept": "application/json"
              } 
     
@@ -427,3 +432,48 @@ class LEVEL3:
              'ODN': 32630,
              'ZAN': 32636}
     
+    
+    
+# import ee
+# import re
+# import requests
+# import numpy as np
+# import matplotlib.pyplot as plt
+# from osgeo import gdal    
+    
+# base_url = f"https://data.apps.fao.org/gismgr/api/v2/catalog/workspaces/WAPOR-3/mapsets"
+    
+    
+# def collect_responses(url, info = ["code"]):
+#     data = {"links": [{"rel": "next", "href": url}]}
+#     output = list()
+#     while "next" in [x["rel"] for x in data["links"]]:
+#         url_ = [x["href"] for x in data["links"] if x["rel"] == "next"][0]
+#         response = requests.get(url_)
+#         response.raise_for_status()
+#         data = response.json()["response"]
+#         if isinstance(info, list):
+#             output += [tuple(x.get(y) for y in info) for x in data["items"]]
+#         else:
+#             output += data["items"]
+#     if isinstance(info, list):
+#         output = sorted(output)
+#     return output    
+    
+# all_mapsets = collect_responses(base_url, info = ["code", "caption"])    
+    
+# mapset_code = "L2-T-D"
+# mapset_url = f"{base_url}/{mapset_code}/rasters"
+# all_rasters = collect_responses(mapset_url, info = ["code", "downloadUrl"])  
+    
+# tif_url = all_rasters[0][1]
+# bounding_box = [30.0, 28.5, 31.5, 30.5] # xmin, ymin, xmax, ymax
+# bands = [1]
+# output_filepath = r"example_subset.tif"   
+    
+# ds = gdal.Warp(output_filepath, f"/vsicurl/{tif_url}", options = warp_options)    
+
+# band = ds.GetRasterBand(1)
+# array = band.ReadAsArray().astype(float)
+# array[array == band.GetNoDataValue()] = np.nan
+# plt.imshow(array)

@@ -59,11 +59,11 @@ def DownloadData(Dir, Startdate, Enddate, latlim, lonlim, Waitbar, cores, TimeCa
         WaitbarConsole.printWaitBar(amount, total_amount, prefix = 'Progress:', suffix = 'Complete', length = 50)
 
     # Check space variables
-    if latlim[0] < -50 or latlim[1] > 50:
-        print('Latitude above 50N or below 50S is not possible.'
+    if latlim[0] < -60 or latlim[1] > 60:
+        print('Latitude above 60N or below 60S is not possible.'
                ' Value set to maximum')
-        latlim[0] = np.max(latlim[0], -50)
-        latlim[1] = np.min(lonlim[1], 50)
+        latlim[0] = np.max(latlim[0], -60)
+        latlim[1] = np.min(lonlim[1], 60)
     if lonlim[0] < -180 or lonlim[1] > 180:
         print('Longitude must be between 180E and 180W.'
                ' Now value is set to maximum')
@@ -71,8 +71,8 @@ def DownloadData(Dir, Startdate, Enddate, latlim, lonlim, Waitbar, cores, TimeCa
         lonlim[1] = np.min(lonlim[1], 180)
 
     # Define IDs
-    yID = 2000 - np.int16(np.array([np.ceil((latlim[1] + 50)*20),
-                                    np.floor((latlim[0] + 50)*20)]))
+    yID = 2400 - np.int16(np.array([np.ceil((latlim[1] + 60)*20),
+                                    np.floor((latlim[0] + 60)*20)]))
     xID = np.int16(np.array([np.floor((lonlim[0] + 180)*20),
                              np.ceil((lonlim[1] + 180)*20)]))
 
@@ -105,80 +105,30 @@ def RetrieveData(Date, args):
     
  	# create all the input name (filename) and output (outfilename, filetif, DiFileEnd) names
     if TimeCase == 'daily':        
-        filename = 'chirp.%s.%02s.%02s.tif.gz' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d'))
-        filename2 = 'chirp.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d'))        
-        outfilename = os.path.join(output_folder,'chirp.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
-        DirFileEnd = os.path.join(output_folder,'P_CHIRP.v2.0_mm-day-1_daily_%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
+        filename2 = 'chirp-v3.0.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d'))        
+        outfilename = os.path.join(output_folder,'chirp-v3.0.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
+        DirFileEnd = os.path.join(output_folder,'P_CHIRP.v3.0_mm-day-1_daily_%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
     else:
         raise KeyError("The input time interval is not supported")
 
     if not os.path.exists(DirFileEnd):
 
         try:
-            # open ftp server
-            ftp = FTP("chg-ftpout.geog.ucsb.edu", "", "")
-            ftp.login()
-        
-        	# Define FTP path to directory
             if TimeCase == 'daily':
-                pathFTP = "https://data.chc.ucsb.edu/products/CHIRP/daily/%s/" %Date.strftime('%Y')
+                url = os.path.join("https://data.chc.ucsb.edu/products/CHIRP-v3.0/daily/global/tifs/%s/"  %Date.strftime('%Y'), filename2)
             else:
                 raise KeyError("The input time interval is not supported")
-        
-            # find the document name in this directory
-            ftp.cwd(pathFTP)
-            listing = []
-        
-        	# read all the file names in the directory
-            ftp.retrlines("LIST", listing.append)
-    
-            # download the global rainfall file
-            local_filename = os.path.join(output_folder, filename)
-            lf = open(local_filename, "wb")
-            ftp.retrbinary("RETR " + filename, lf.write, 8192)
-            lf.close()
-            
-        except:
-            if TimeCase == 'daily':
-                url = os.path.join("https://data.chc.ucsb.edu/products/CHIRP/daily/%s/"  %Date.strftime('%Y'), filename)
-            else:
-                raise KeyError("The input time interval is not supported")
-            
-            try:
-                local_filename = os.path.join(output_folder, filename)
-                session = requests.Session()
-                r = session.get(url, stream=True)
-                r.raise_for_status()
-                with open(local_filename, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024 * 1024):
-                        if chunk:  # filter out keep-alive new chunks
-                            f.write(chunk)
-               
-                no_extract = 0                
-            except:
-                
-                if TimeCase == 'daily':
-                    url = os.path.join("https://data.chc.ucsb.edu/products/CHIRP/daily/%s/" %Date.strftime('%Y'), filename2)
-                else:
-                    raise KeyError("The input time interval is not supported")    
-                
-                local_filename = os.path.join(output_folder, filename2)
-                session = requests.Session()
-                r = session.get(url, stream=True)
-                r.raise_for_status()
-                with open(local_filename, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=1024 * 1024):
-                        if chunk:  # filter out keep-alive new chunks
-                            f.write(chunk)
-                no_extract = 1
-            
-        try:
-    
-            if no_extract == 0:  
-                # unzip the file
-                zip_filename = os.path.join(output_folder, filename)
-                DC.Extract_Data_gz(zip_filename, outfilename)
-     
+
+
+            local_filename = os.path.join(output_folder, filename2)
+            session = requests.Session()
+            r = session.get(url, stream=True)
+            r.raise_for_status()
+            with open(local_filename, 'wb') as f:
+                for chunk in r.iter_content(chunk_size=1024 * 1024):
+                    if chunk:  # filter out keep-alive new chunks
+                        f.write(chunk)
+   
             # open tiff file
             dataset = RC.Open_tiff_array(outfilename)
     
@@ -194,6 +144,6 @@ def RetrieveData(Date, args):
             os.remove(outfilename)
     
         except:
-            print("file not exists")   
+            print("No succes to download CHIRP at %s" %Date)   
                 
     return True

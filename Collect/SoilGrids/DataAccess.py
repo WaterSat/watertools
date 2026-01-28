@@ -98,7 +98,8 @@ def DownloadData(output_folder, latlim, lonlim, dataset, level = None):
                 Array = dest.GetRasterBand(1).ReadAsArray()
                 del dest
                 time.sleep(1)
-                Array = np.float_(Array) * conversion
+                Array = np.float64(Array) * conversion
+                print("Conversion: %s"%conversion)
                 
                 try:
                     Array = RC.gap_filling(Array, 0)
