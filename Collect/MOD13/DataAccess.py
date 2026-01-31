@@ -230,7 +230,7 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
         for Horizontal in range(int(TilesHorizontal[0]), int(TilesHorizontal[1]) + 1):
             countX=int(Horizontal - TilesHorizontal[0] + 1)
 
-		      # Reset the begin parameters for downloading
+		    # Reset the begin parameters for downloading
             downloaded = 0
             N=0
 
@@ -300,6 +300,24 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library):
                                             #print(head)
                                             print(url)
                                             r = requests.get(full_url, headers = head, stream=True, timeout = 2000)
+                                                                
+                                            # url = full_url
+                                            # username = "YOUR_EARTHDATA_USERNAME"
+                                            # password = "YOUR_EARTHDATA_PASSWORD"
+                                            
+                                            # with requests.get(
+                                            #     url,
+                                            #     auth=(username, password),
+                                            #     stream=True,
+                                            #     timeout=2000
+                                            # ) as r:
+                                            #     r.raise_for_status()
+                                            #     with open("file.dat", "wb") as f:
+                                            #         for chunk in r.iter_content(chunk_size=8192):
+                                            #             if chunk:
+                                            #                 f.write(chunk)
+                                                                
+                                 
                     
                                             #print(r.status_code)
                                             if r.status_code == 200:

@@ -109,7 +109,7 @@ def RetrieveData(Date, args):
 	# create all the input name (filename) and output (outfilename, filetif, DiFileEnd) names
     if TimeCase == 'daily':
         filename2 = 'chirps-v3.0.rnl.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d'))        
-        outfilename = os.path.join(output_folder,'chirps-v3.0.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
+        outfilename = os.path.join(output_folder,'chirps-v3.0.rnl.%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
         DirFileEnd = os.path.join(output_folder,'P_CHIRPS.v3.0_mm-day-1_daily_%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
     elif TimeCase == 'monthly':
         filename2 = 'chirps-v3.0.%s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'))
