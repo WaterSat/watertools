@@ -169,12 +169,12 @@ def DownloadData(input_folder, startdate, enddate, latlim, lonlim, Waitbar):
                              options = gdal.RasterizeOptions(format='GTiff', outputSRS='EPSG:4326',  xRes=0.00375,  yRes=0.00375,  attribute='value', noData=-9999)
                              dest = gdal.Rasterize(destNameOrDestDS=tif_out, srcDS=vrt_out, options=options)
                                                         
-                             
-                             
+                                                          
                              #dest = gdal.Rasterize(tif_out, vrt_out, outputSRS = "EPSG:4326", xRes = 0.00375, yRes = -0.00375, attribute = "value", noData = -9999)
                             
                              LST = dest.GetRasterBand(1).ReadAsArray()
                              LST[LST==0] = np.nan
+                             LST[LST==-9999] = np.nan
                              
                              BUFFER = np.where(~np.isnan(LST), 1, 0)
                              BUFFER_ONE = RC.Create_Buffer(BUFFER, 1)
