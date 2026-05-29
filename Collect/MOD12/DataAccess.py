@@ -179,9 +179,10 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, LC_Type, hdf_
             countX=int(Horizontal - TilesHorizontal[0] + 1)
 
             # Download the MODIS LC data
-            url = 'https://e4ftl01.cr.usgs.gov/MOTA/MCD12Q1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
-
-		      # Reset the begin parameters for downloading
+            #url = 'https://e4ftl01.cr.usgs.gov/MOTA/MCD12Q1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+            url = 'https://ladsweb.modaps.eosdis.nasa.gov/archive/allData/61/MCD12Q1/%s/%03s/'%(int(Date.strftime('%Y')), Date.strftime('%j'))
+		               
+            # Reset the begin parameters for downloading
             downloaded = 0
             N=0
 
@@ -196,73 +197,106 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, LC_Type, hdf_
                     if os.path.exists(hdf_file):
                         downloaded = 1
                         file_name = hdf_file
-
+            
             if not downloaded == 1:
-                
-                try:
-                    # Get files on FTP server
-                    if sys.version_info[0] == 3:
-                        f = urllib.request.urlopen(url)
-    
-                    if sys.version_info[0] == 2:
-                        f = urllib2.urlopen(url)
-
-                    # Sum all the files on the server
-                    soup = BeautifulSoup(f, "html.parser")
-                    for i in soup.findAll('a', attrs = {'href': re.compile('(?i)(hdf)$')}):
-    
-                        # Find the file with the wanted tile number
-                        Vfile=str(i)[30:32]
-                        Hfile=str(i)[27:29]
-                        if int(Vfile) is int(Vertical) and int(Hfile) is int(Horizontal):
-    
-                            # Define the whole url name
-                            if sys.version_info[0] == 3:
-                                full_url = urllib.parse.urljoin(url, i['href'])
-    
-                            if sys.version_info[0] == 2:
-                                full_url = urlparse.urljoin(url, i['href'])
-    
-                            # if not downloaded try to download file
-                            while downloaded == 0:
-    
-                                try:# open http and download whole .hdf
-                                    nameDownload = full_url
-                                    file_name = os.path.join(output_folder,nameDownload.split('/')[-1])
-                                    if os.path.isfile(file_name):
-                                        print("file ", file_name, " already exists")
-                                        downloaded = 1
-                                    else:
-                                        x = requests.get(nameDownload, allow_redirects = False)
-                                        try:
-                                            y = requests.get(x.headers['location'], auth = (username, password))
-                                        except:
-                                            from requests.packages.urllib3.exceptions import InsecureRequestWarning
-                                            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-    
-                                            y = requests.get(x.headers['location'], auth = (username, password), verify = False)
-                                        z = open(file_name, 'wb')
-                                        z.write(y.content)
-                                        z.close()
-                                        statinfo = os.stat(file_name)
-                                        # Say that download was succesfull
-                                        if int(statinfo.st_size) > 10000:
-                                             downloaded = 1
-    
-                                # If download was not succesfull
-                                except:
-    
-                                    # Try another time
-                                    N = N + 1
-    
-                				         # Stop trying after 10 times
-                                    if N == 10:
-                                        print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
-                                        downloaded = 1
-                                        
-                except:
-                        print("Url not found: %s" %url)                                             
-                                        
+            
+                 try:
+                     # Get files on FTP server
+                     if sys.version_info[0] == 3:
+                         f = urllib.request.urlopen(url)
+            
+                     if sys.version_info[0] == 2:
+                         f = urllib2.urlopen(url)
+            
+                     # Sum all the files on the server
+                     soup = BeautifulSoup(f, "lxml")
+                     for i in soup.findAll('a', attrs = {'href': re.compile('(?i)(hdf)$')}):
+            
+                         # Regex pattern to extract hXX and vXX
+                         href = i.get('href')  # <-- Get the href as a string
+                         match = re.search(r'h(\d{2})v(\d{2})', href)
+            
+                         if match:
+                             Hfile = int(match.group(1))
+                             Vfile = int(match.group(2))
+            
+                         else:
+                             print("No match found.")     
+                             
+                         if int(Vfile) is int(Vertical) and int(Hfile) is int(Horizontal):
+            
+                             # Define the whole url name
+                             if sys.version_info[0] == 3:
+                                 full_url = urllib.parse.urljoin(url, i['href'])
+            
+                             if sys.version_info[0] == 2:
+                                 full_url = urlparse.urljoin(url, i['href'])
+            
+                             # if not downloaded try to download file
+                             while downloaded == 0:
+            
+                                 try:# open http and download whole .hdf
+                                     nameDownload = full_url
+                                     file_name = os.path.join(output_folder,nameDownload.split('/')[-1])
+                                     if os.path.isfile(file_name):
+                                         print("file ", file_name, " already exists")
+                                         downloaded = 1
+                                     else:
+                                         try:
+                                             NASA_BEARER, passw = watertools.Functions.Random.Get_Username_PWD.GET('NASA_BEARER')
+                                             head = {"Authorization": "Bearer %s" %NASA_BEARER}
+                                             #print(head)
+                                             print(url)
+                                             r = requests.get(full_url, headers = head, stream=True, timeout = 2000)
+                                                                 
+                                             # url = full_url
+                                             # username = "YOUR_EARTHDATA_USERNAME"
+                                             # password = "YOUR_EARTHDATA_PASSWORD"
+                                             
+                                             # with requests.get(
+                                             #     url,
+                                             #     auth=(username, password),
+                                             #     stream=True,
+                                             #     timeout=2000
+                                             # ) as r:
+                                             #     r.raise_for_status()
+                                             #     with open("file.dat", "wb") as f:
+                                             #         for chunk in r.iter_content(chunk_size=8192):
+                                             #             if chunk:
+                                             #                 f.write(chunk)
+                                                                 
+                                  
+                     
+                                             #print(r.status_code)
+                                             if r.status_code == 200:
+                                                 
+                                                 with open(file_name, 'wb') as f:
+                                                     for chunk in r.iter_content(chunk_size=1024 * 1024):
+                                                         if chunk:  # filter out keep-alive new chunks
+                                                             f.write(chunk)
+                                             else:
+                                                 print("Something went wrong downloading %s" %url)
+                              
+                                         except:
+                                             print("Was not able to download: %s" %full_url)
+            
+                                 
+            
+                                 # If download was not succesfull
+                                 except:
+            
+                                     # Try another time
+                                     N = N + 1
+            
+            	  # Stop trying after 10 times
+                             if N == 10:
+                                 print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
+                                 downloaded = 1
+                                 
+                 except:
+                         print("Url not found: %s" %url)     
+                                                                   
+                                                    
             try:
                 # Open .hdf only band with LC and collect all tiles to one array
                 dataset = gdal.Open(file_name)

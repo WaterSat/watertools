@@ -9,6 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 import datetime
+from osgeo import gdal
 import urllib
 import requests
 from netCDF4 import Dataset
@@ -141,6 +142,40 @@ def DownloadData(Dir, Var, Startdate, Enddate, latlim, lonlim, TimeStep, Period,
             output_name_min = output_folder
             output_name_max = output_folder
             
+        if os.path.exists(output_name) and "mean" in data_type:
+            try:
+                dest_test = gdal.Open(output_name)
+                if dest_test is None:
+                    print("Corrupt of niet leesbaar TIFF → verwijderen")
+                    os.remove(output_name)
+                else:
+                    dest_test = None  # netjes sluiten
+            except: 
+                os.remove(output_name)       
+                
+        if os.path.exists(output_name_max) and "max" in data_type:
+            try:
+                dest_test = gdal.Open(output_name_max)
+                if dest_test is None:
+                    print("Corrupt of niet leesbaar TIFF → verwijderen")
+                    os.remove(output_name_max)
+                else:
+                    dest_test = None  # netjes sluiten
+            except: 
+                os.remove(output_name_max)                      
+                
+        if os.path.exists(output_name_min) and "min" in data_type:
+            try:
+                dest_test = gdal.Open(output_name_min)
+                if dest_test is None:
+                    print("Corrupt of niet leesbaar TIFF → verwijderen")
+                    os.remove(output_name_min)
+                else:
+                    dest_test = None  # netjes sluiten
+            except: 
+                os.remove(output_name_min)       
+                
+
         if not (os.path.exists(output_name) and os.path.exists(output_name_min) and os.path.exists(output_name_max)):
             
             if (TimeStep == "hourly_MERRA2" or TimeStep == "daily_MERRA2"):

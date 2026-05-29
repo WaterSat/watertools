@@ -10,6 +10,7 @@ Module: Collect/TRMM
 import numpy as np
 import os
 import pandas as pd
+from osgeo import gdal
 import requests
 import calendar
 from joblib import Parallel, delayed
@@ -127,6 +128,17 @@ def RetrieveData(Date, args):
 
         Scaling = calendar.monthrange(year,month)[1] * 24
         DirFile = os.path.join(output_folder, "P_TRMM3B43.V7_mm-month-1_monthly_%d.%02d.01.tif" %(year, month))
+
+    if os.path.exists(DirFile):
+        try:
+            dest_test = gdal.Open(DirFile)
+            if dest_test is None:
+                print("Corrupt of niet leesbaar TIFF → verwijderen")
+                os.remove(DirFile)
+            else:
+                dest_test = None  # netjes sluiten
+        except: 
+            os.remove(DirFile)    
 
     if not os.path.isfile(DirFile):
         dataset = requests.get(URL, allow_redirects=False,stream = True)

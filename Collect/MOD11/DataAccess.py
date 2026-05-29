@@ -141,13 +141,16 @@ def RetrieveData(Date, args):
         TimefileNamePart = os.path.join(output_folder, 'Time_MOD11A1_hour_daily_' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '.tif')    
   
     filesMOD = glob.glob(LSTfileNamePart)
+    filesMOD = [f for f in filesMOD if check_and_remove_if_corrupt(f)]
     if angle_info == 1:
         filesANGLE = glob.glob(OnsangfileNamePart)
+        filesANGLE = [f for f in filesANGLE if check_and_remove_if_corrupt(f)]
     else:
         filesANGLE = ["not_required"]
         
     if time_info == 1:
         filesTime = glob.glob(TimefileNamePart)
+        filesTime = [f for f in filesTime if check_and_remove_if_corrupt(f)]
     else:
         filesTime = ["not_required"]    
         
@@ -555,3 +558,28 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, TimeStep, hdf
         sds = None    
 
     return()
+
+
+def check_and_remove_if_corrupt(filepath):
+    if not os.path.exists(filepath):
+        return False
+
+    ds = gdal.Open(filepath)
+
+    if ds is None:
+        print(f"Corrupt TIFF verwijderd: {filepath}")
+        os.remove(filepath)
+        return False
+
+    # extra check (optioneel maar beter)
+    try:
+        band = ds.GetRasterBand(1)
+        arr = band.ReadAsArray()
+        if arr is None:
+            raise ValueError("Empty raster")
+    except:
+        print(f"Corrupt raster data verwijderd: {filepath}")
+        os.remove(filepath)
+        return False
+
+    return True

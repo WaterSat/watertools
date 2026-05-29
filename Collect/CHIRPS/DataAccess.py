@@ -9,6 +9,7 @@ import os
 import requests
 import numpy as np
 import pandas as pd
+from osgeo import gdal
 from ftplib import FTP
 from joblib import Parallel, delayed
 
@@ -117,6 +118,18 @@ def RetrieveData(Date, args):
         DirFileEnd = os.path.join(output_folder,'P_CHIRPS.v3.0_mm-month-1_monthly_%s.%02s.%02s.tif' %(Date.strftime('%Y'), Date.strftime('%m'), Date.strftime('%d')))
     else:
         raise KeyError("The input time interval is not supported")
+
+    if os.path.exists(DirFileEnd):
+        try:
+            dest_test = gdal.Open(DirFileEnd)
+            if dest_test is None:
+                print("Corrupt of niet leesbaar TIFF → verwijderen")
+                os.remove(DirFileEnd)
+            else:
+                dest_test = None  # netjes sluiten
+        except: 
+            os.remove(DirFileEnd)    
+
 
     if not os.path.exists(DirFileEnd):
 

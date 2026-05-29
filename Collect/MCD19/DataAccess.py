@@ -124,6 +124,18 @@ def RetrieveData(Date, args):
     # output filename
     ReffileName = os.path.join(output_folder, 'Albedo_MCD19A3D_-_daily_' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '.tif')
 
+    if os.path.exists(ReffileName):
+        try:
+            dest_test = gdal.Open(ReffileName)
+            if dest_test is None:
+                print("Corrupt of niet leesbaar TIFF → verwijderen")
+                os.remove(ReffileName)
+            else:
+                dest_test = None  # netjes sluiten
+        except: 
+            os.remove(ReffileName)    
+
+
     if not os.path.exists(ReffileName):
         
         # Collect the data from the MODIS webpage and returns the data and lat and long in meters of those tiles

@@ -120,7 +120,18 @@ def RetrieveData(Date, args):
     [output_folder, TilesVertical, TilesHorizontal, latlim, lonlim, hdf_library] = args
 
     NDVIfileName = os.path.join(output_folder, 'NDVI_MOD13Q1_-_16-daily_' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '.tif')
-
+        
+    if os.path.exists(NDVIfileName):
+        try:
+            dest_test = gdal.Open(NDVIfileName)
+            if dest_test is None:
+                print("Corrupt of niet leesbaar TIFF → verwijderen")
+                os.remove(NDVIfileName)
+            else:
+                dest_test = None  # netjes sluiten
+        except: 
+            os.remove(NDVIfileName)       
+ 
     if not os.path.exists(NDVIfileName):
         
         # Collect the data from the MODIS webpage and returns the data and lat and long in meters of those tiles

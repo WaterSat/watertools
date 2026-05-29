@@ -126,6 +126,17 @@ def RetrieveData(Date, args):
     else:
         ReffileName = os.path.join(output_folder, 'ReflectanceBand%d_MOD09G%s_-_daily_'%(band, letter) + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '.tif')
 
+    if os.path.exists(ReffileName):
+        try:
+            dest_test = gdal.Open(ReffileName)
+            if dest_test is None:
+                print("Corrupt of niet leesbaar TIFF → verwijderen")
+                os.remove(ReffileName)
+            else:
+                dest_test = None  # netjes sluiten
+        except: 
+            os.remove(ReffileName)    
+
     if not os.path.exists(ReffileName):    
         # Collect the data from the MODIS webpage and returns the data and lat and long in meters of those tiles
         try:

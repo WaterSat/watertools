@@ -50,7 +50,7 @@ def DownloadData(Dir, Var, Startdate, Enddate, latlim, lonlim, Waitbar, cores,
 
         # Define URL by using personal account
         #url = 'http://%s:%s@hydro1.gesdisc.eosdis.nasa.gov:80/dods/GLDAS_NOAH025SUBP_3H' %(username,password)
-        url = 'https://hydro1.gesdisc.eosdis.nasa.gov/dods/GLDAS_NOAH025_3H.{0}'.format(gldas_version) #%(username,password)
+        url = 'https://hydro1.gesdisc.eosdis.nasa.gov/dods/GLDAS/GLDAS_NOAH025_3H.{0}'.format(gldas_version) #%(username,password)
 
         # Name the definition that will be used to obtain the data
         RetrieveData_fcn = RetrieveData_three_hourly
@@ -83,7 +83,7 @@ def DownloadData(Dir, Var, Startdate, Enddate, latlim, lonlim, Waitbar, cores,
 
         # Define URL by using personal account
         #url = 'http://%s:%s@hydro1.gesdisc.eosdis.nasa.gov:80/dods/GLDAS_NOAH025SUBP_3H' %(username,password)
-        url = 'https://hydro1.gesdisc.eosdis.nasa.gov/dods/GLDAS_NOAH025_3H.{0}'.format(gldas_version) #%(username,password)
+        url = 'https://hydro1.gesdisc.eosdis.nasa.gov/dods/GLDAS/GLDAS_NOAH025_3H.{0}'.format(gldas_version) #%(username,password)
 
         # Name the definition that will be used to obtain the data
         RetrieveData_fcn = RetrieveData_daily
@@ -106,8 +106,8 @@ def DownloadData(Dir, Var, Startdate, Enddate, latlim, lonlim, Waitbar, cores,
 
         # Define URL by using personal account
         #url = 'http://%s:%s@hydro1.gesdisc.eosdis.nasa.gov:80/dods/GLDAS_NOAH025_M' %(username,password)
-        url = 'https://hydro1.gesdisc.eosdis.nasa.gov/dods/GLDAS_NOAH025_M.{0}'.format(gldas_version) #%(username,password)
-
+        url = 'https://hydro1.gesdisc.eosdis.nasa.gov/dods/GLDAS/GLDAS_NOAH025_M.{0}'.format(gldas_version) #%(username,password)
+               
 
         # Name the definition that will be used to obtain the data
         RetrieveData_fcn = RetrieveData_monthly

@@ -11,6 +11,7 @@ import os
 import pandas as pd
 import requests
 import calendar
+from osgeo import gdal
 from joblib import Parallel, delayed
 
 import watertools
@@ -121,6 +122,18 @@ def RetrieveData(Date, args):
         URL = 'https://gpm1.gesdisc.eosdis.nasa.gov/opendap/GPM_L3/GPM_3IMERGM.07/%d/3B-MO.MS.MRG.3IMERG.%d%02d01-S000000-E235959.%02d.V07B.HDF5.ascii?precipitation%%5B0%%5D%%5B%d:1:%d%%5D%%5B%d:1:%d%%5D'  %(year, year, month, month, xID[0], xID[1]-1, yID[0], yID[1]-1)
         Scaling = calendar.monthrange(year,month)[1] * 24
         DirFile = os.path.join(output_folder, "P_GPM.IMERG_mm-month-1_monthly_%d.%02d.01.tif" %(year, month))
+
+    if os.path.exists(DirFile):
+        try:
+            dest_test = gdal.Open(DirFile)
+            if dest_test is None:
+                print("Corrupt of niet leesbaar TIFF → verwijderen")
+                os.remove(DirFile)
+            else:
+                dest_test = None  # netjes sluiten
+        except: 
+            os.remove(DirFile) 
+
 
     if not os.path.isfile(DirFile):
         session = requests.Session()

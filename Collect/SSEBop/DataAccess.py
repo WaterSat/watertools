@@ -125,9 +125,16 @@ def DownloadData(Dir, Startdate, Enddate, latlim, lonlim, Waitbar, version, Time
 
         if Date < datetime.datetime(2012,2,1) and version == "V6" and Product == "ETact":
             print("Change version type from V6 into V5 for date %s" %Date.strftime("%Y-%m-%d"))
-            version_use = "V5"
+            if Date < datetime.datetime(2002,12,31) and version == "V6" and Product == "ETact":
+                print("Change version type from V5 into V4 for date %s" %Date.strftime("%Y-%m-%d"))
+                version_use = "V4"    
+            else:
+                version_use = "V5"
+                
         else:
             version_use = np.copy(version)
+        
+
             
             
         if version_use == "V4" or version_use == "V5" or version_use == "V6":
@@ -179,7 +186,7 @@ def DownloadData(Dir, Startdate, Enddate, latlim, lonlim, Waitbar, version, Time
                     # Define the downloaded zip file
                     Filename_only_zip = "m%s%02d.zip" %(str(year), month)
                     # The end file name after downloading and unzipping
-                    Filename_only = "m%s%02d_viirsSSEBopETv6_actual_mm.tif" %(str(year), month)
+                    Filename_only = "m%s%02d_viirsSSEBopETv61_actual_mm.tif" %(str(year), month)
     
             		    # Temporary filename for the downloaded global file
                     local_filename = os.path.join(output_folder, Filename_only)
@@ -254,7 +261,7 @@ def Download_SSEBop_from_Web(output_folder, Filename_only_zip, Product, TimeStep
     if Product == "ETact" and TimeStep == "monthly" and version == "V6":
         # Create the total url to the webpage
         total_URL = "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/monthly/etav61/downloads/monthly/" + str(Filename_only_zip)
-
+        
            
     if Product == "ETpot" and TimeStep == "daily":
         total_URL = "https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/daily/" + str(Filename_only_zip)

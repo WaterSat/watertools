@@ -190,8 +190,8 @@ def Make_TimeStamps(Startdate,Enddate):
     Startdate = (str(Year) + '-' + str(Month) + '-' + str(Day))
 
     # Create the start and end data for the whole year
-    YearStartDate = pd.date_range(Startdate, Enddate, freq = 'AS')
-    YearEndDate = pd.date_range(Startdate, Enddate, freq = 'A')
+    YearStartDate = pd.date_range(Startdate, Enddate, freq = 'YS')
+    YearEndDate = pd.date_range(Startdate, Enddate, freq = 'YE')
 
     # Define the amount of years that are involved
     AmountOfYear = YearEnd - Year
@@ -242,19 +242,19 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library, 
 
     # Download the MODIS FPAR data
     if period == "8-daily":
-        url = 'https://n5eil01u.ecs.nsidc.org/MOST/MOD10A2.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
-    if period == "daily":
-        url = 'https://n5eil01u.ecs.nsidc.org/MOST/MOD10A1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
-        
-    dataset = requests.get(url, allow_redirects=False,stream = True)
-    try:
-        get_dataset = requests.get(dataset.headers['location'], auth = (username,password),stream = True).content
-    except:
-        from requests.packages.urllib3.exceptions import InsecureRequestWarning
-        requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-        get_dataset  = requests.get(dataset.headers['location'], auth = (username, password), verify = False).content
+        #url = 'https://n5eil01u.ecs.nsidc.org/MOST/MOD10A2.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+        url = 'https://cmr.earthdata.nasa.gov/virtual-directory/collections/C3044685923-NSIDC_CPRD/temporal/%s/%02s/%02s/' %(int(Date.strftime('%Y')), Date.strftime('%m'), Date.strftime('%d'))
 
-    soup = BeautifulSoup(get_dataset, "html.parser")
+        
+    if period == "daily":
+       # url = 'https://n5eil01u.ecs.nsidc.org/MOST/MOD10A1.061/' + Date.strftime('%Y') + '.' + Date.strftime('%m') + '.' + Date.strftime('%d') + '/'
+        url = 'https://cmr.earthdata.nasa.gov/virtual-directory/collections/C2565093311-NSIDC_CPRD/temporal/%s/%02s/%02s/' %(int(Date.strftime('%Y')), Date.strftime('%m'), Date.strftime('%d'))
+
+    # Get files on FTP server
+    response = requests.get(url)
+    html = response.text
+    soup = BeautifulSoup(html, "html.parser")
+    
 
     if len(str(soup)) < 300:
         print('Download was not succesfull, please check NASA account')
@@ -268,96 +268,121 @@ def Collect_data(TilesHorizontal,TilesVertical,Date,output_folder, hdf_library, 
         for Horizontal in range(int(TilesHorizontal[0]), int(TilesHorizontal[1]) + 1):
             countX=int(Horizontal - TilesHorizontal[0] + 1)
 
-            for i in soup.findAll('a', attrs = {'href': re.compile('(?i)(hdf)$')}):
-
-                # Find the file with the wanted tile number
-                Vfile=str(i)[30:32]
-                Hfile=str(i)[27:29]
-                if int(Vfile) is int(Vertical) and int(Hfile) is int(Horizontal):
-
-                    # Define the whole url name
-                    if sys.version_info[0] == 3:
-                        full_url = urllib.parse.urljoin(url, i['href'])
-
-                    if sys.version_info[0] == 2:
-                        full_url = urlparse.urljoin(url, i['href'])
-
-		              # Reset the begin parameters for downloading
-                    downloaded = 0
-                    N=0
-
-                    # if not downloaded try to download file
-                    while downloaded == 0:
-
-                        try:# open http and download whole .hdf
-                            nameDownload_url = full_url
-                            file_name = os.path.join(output_folder,nameDownload_url.split('/')[-1])
-                            if os.path.isfile(file_name):
-                                downloaded = 1
-                            else:
-                                x = requests.get(nameDownload_url, allow_redirects = False)
-                                try:
-                                    y = requests.get(x.headers['location'], auth = (username, password))
+            # Download the MODIS FPAR data
+            if period == "8-daily":
+                hdf_name = glob.glob("MOD10A2.A%s%03s.h%02dv%02d.*" %(Date.strftime('%Y'), Date.strftime('%j'), Horizontal, Vertical))
+                
+            if period == "daily":
+                hdf_name = glob.glob("MOD10A1.A%s%03s.h%02dv%02d.*" %(Date.strftime('%Y'), Date.strftime('%j'), Horizontal, Vertical))
+              
+                
+                
+                
+            # Reset the begin parameters for downloading
+            downloaded = 0
+            N=0
+    
+            
+            # Check the library given by user
+            if hdf_library is not None:
+                os.chdir(hdf_library)
+            
+                if len(hdf_name) == 1:
+                    hdf_file = os.path.join(hdf_library, hdf_name[0])
+        
+                    if os.path.exists(hdf_file):
+                        downloaded = 1
+                        file_name = hdf_file     
+        
+        
+            if not downloaded == 1:
+                
+                try:
+                    
+                    tile_str = f"h{Horizontal:02d}v{Vertical:02d}"
+                    for a in soup.find_all("a", href=True):
+                        href = a["href"]    
+                        if tile_str in href:
+                
+                            full_url = href
+                 
+                            # if not downloaded try to download file
+                            while downloaded == 0:
+        
+                                try:# open http and download whole .hdf
+                                    nameDownload_url = full_url
+                                    file_name = os.path.join(output_folder,nameDownload_url.split('/')[-1])
+                                    if os.path.isfile(file_name):
+                                        downloaded = 1
+                                    else:
+                                        x = requests.get(nameDownload_url, allow_redirects = False)
+                                        try:
+                                            y = requests.get(x.headers['location'], auth = (username, password))
+                                        except:
+                                            from requests.packages.urllib3.exceptions import InsecureRequestWarning
+                                            requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+        
+                                            y = requests.get(x.headers['location'], auth = (username, password), verify = False)
+                                        z = open(file_name, 'wb')
+                                        z.write(y.content)
+                                        z.close()
+                                        statinfo = os.stat(file_name)
+                                        # Say that download was succesfull
+                                        if int(statinfo.st_size) > 1000:
+                                             downloaded = 1
+        
+                                # If download was not succesfull
                                 except:
-                                    from requests.packages.urllib3.exceptions import InsecureRequestWarning
-                                    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+        
+                                    # Try another time
+                                    N = N + 1
+        
+        						      # Stop trying after 10 times
+                                if N == 10:
+                                    print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
+                                    downloaded = 1
+ 
+                except:
+                    print("Url not found: %s" %url)                                        
+                                    
+                                    
+        
+            try:
+                # Open .hdf only band with SnowFrac and collect all tiles to one array
+                scale_factor = 1
+                dataset = gdal.Open(file_name)
+                sdsdict = dataset.GetMetadata('SUBDATASETS')
+                sdslist = [sdsdict[k] for k in sdsdict.keys() if '_1_NAME' in k]
+                sds = []
 
-                                    y = requests.get(x.headers['location'], auth = (username, password), verify = False)
-                                z = open(file_name, 'wb')
-                                z.write(y.content)
-                                z.close()
-                                statinfo = os.stat(file_name)
-                                # Say that download was succesfull
-                                if int(statinfo.st_size) > 1000:
-                                     downloaded = 1
+                for n in sdslist:
+                    sds.append(gdal.Open(n))
+                    full_layer = [i for i in sdslist if 'MOD_Grid_Snow_500m' in i]
 
-                        # If download was not succesfull
-                        except:
+                    idx = sdslist.index(full_layer[0])
+                    if Horizontal == TilesHorizontal[0] and Vertical == TilesVertical[0]:
+                        geo_t = sds[idx].GetGeoTransform()
 
-                            # Try another time
-                            N = N + 1
+                        # get the projection value
+                        proj = sds[idx].GetProjection()
 
-						      # Stop trying after 10 times
-                        if N == 10:
-                            print('Data from ' + Date.strftime('%Y-%m-%d') + ' is not available')
-                            downloaded = 1
+                    data = sds[idx].ReadAsArray()
+                    countYdata = int((TilesVertical[1] - TilesVertical[0] + 2) - countY)
+                    DataTot[int((countYdata - 1) * 2400):int(countYdata * 2400), int((countX - 1) * 2400):int(countX * 2400)]=data * scale_factor
+                del data
 
-                    try:
-                        # Open .hdf only band with SnowFrac and collect all tiles to one array
-                        scale_factor = 1
-                        dataset = gdal.Open(file_name)
-                        sdsdict = dataset.GetMetadata('SUBDATASETS')
-                        sdslist = [sdsdict[k] for k in sdsdict.keys() if '_1_NAME' in k]
-                        sds = []
+            # if the tile not exists or cannot be opened, create a nan array with the right projection
+            except:
+                if Horizontal==TilesHorizontal[0] and Vertical==TilesVertical[0]:
+                     x1 = (TilesHorizontal[0] - 19) * 2400 * Distance
+                     x4 = (TilesVertical[0] - 9) * 2400 * -1 * Distance
+                     geo = 	[x1, Distance, 0.0, x4, 0.0, -Distance]
+                     geo_t=tuple(geo)
 
-                        for n in sdslist:
-                            sds.append(gdal.Open(n))
-                            full_layer = [i for i in sdslist if 'MOD_Grid_Snow_500m' in i]
-
-                            idx = sdslist.index(full_layer[0])
-                            if Horizontal == TilesHorizontal[0] and Vertical == TilesVertical[0]:
-                                geo_t = sds[idx].GetGeoTransform()
-
-                                # get the projection value
-                                proj = sds[idx].GetProjection()
-
-                            data = sds[idx].ReadAsArray()
-                            countYdata = int((TilesVertical[1] - TilesVertical[0] + 2) - countY)
-                            DataTot[int((countYdata - 1) * 2400):int(countYdata * 2400), int((countX - 1) * 2400):int(countX * 2400)]=data * scale_factor
-                        del data
-
-                    # if the tile not exists or cannot be opened, create a nan array with the right projection
-                    except:
-                        if Horizontal==TilesHorizontal[0] and Vertical==TilesVertical[0]:
-                             x1 = (TilesHorizontal[0] - 19) * 2400 * Distance
-                             x4 = (TilesVertical[0] - 9) * 2400 * -1 * Distance
-                             geo = 	[x1, Distance, 0.0, x4, 0.0, -Distance]
-                             geo_t=tuple(geo)
-
-                        proj='PROJCS["unnamed",GEOGCS["Unknown datum based upon the custom spheroid",DATUM["Not specified (based on custom spheroid)",SPHEROID["Custom spheroid",6371007.181,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Sinusoidal"],PARAMETER["longitude_of_center",0],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["Meter",1]]'
-                        data=np.ones((2400, 2400)) * (-9999)
-                        countYdata=(TilesVertical[1] - TilesVertical[0] + 2) - countY
-                        DataTot[(countYdata - 1) * 2400:countYdata * 2400,(countX - 1) * 2400:countX * 2400] = data * 0.01
+                proj='PROJCS["unnamed",GEOGCS["Unknown datum based upon the custom spheroid",DATUM["Not specified (based on custom spheroid)",SPHEROID["Custom spheroid",6371007.181,0]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Sinusoidal"],PARAMETER["longitude_of_center",0],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["Meter",1]]'
+                data=np.ones((2400, 2400)) * (-9999)
+                countYdata=(TilesVertical[1] - TilesVertical[0] + 2) - countY
+                DataTot[(countYdata - 1) * 2400:countYdata * 2400,(countX - 1) * 2400:countX * 2400] = data * 0.01
 
 
     # Make geotiff file

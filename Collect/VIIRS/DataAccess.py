@@ -99,6 +99,17 @@ def DownloadData(input_folder, startdate, enddate, latlim, lonlim, Waitbar):
                 
                 filename_out = os.path.join(input_folder_VIIRS, "NPP_VIAES_L1_%s_H%02dM%02d.tif" %(date_datetime.strftime("%Y%m%d"), hour, minutes))
                 
+                if os.path.exists(filename_out):
+                    try:
+                        dest_test = gdal.Open(filename_out)
+                        if dest_test is None:
+                            print("Corrupt of niet leesbaar TIFF → verwijderen")
+                            os.remove(filename_out)
+                        else:
+                            dest_test = None  # netjes sluiten
+                    except: 
+                        os.remove(filename_out)   
+         
                 if not os.path.exists(filename_out):
                               
                     file_name_vnp = os.path.join(input_folder_VIIRS_RAW, file_vnp_hdf_ok)

@@ -9,6 +9,7 @@ import os
 import numpy as np
 import pandas as pd
 import requests
+from osgeo import gdal
 import urllib
 import time
 
@@ -233,11 +234,47 @@ def DownloadData(Dir, Var, Startdate, Enddate, latlim, lonlim, TimeStep, Period,
             else:
                 output_name_max = output_folder
                 
+                
+        if os.path.exists(output_name) and "mean" in data_type:
+            try:
+                dest_test = gdal.Open(output_name)
+                if dest_test is None:
+                    print("Corrupt of niet leesbaar TIFF → verwijderen")
+                    os.remove(output_name)
+                else:
+                    dest_test = None  # netjes sluiten
+            except: 
+                os.remove(output_name)       
+                
+        if os.path.exists(output_name_max) and "max" in data_type:
+            try:
+                dest_test = gdal.Open(output_name_max)
+                if dest_test is None:
+                    print("Corrupt of niet leesbaar TIFF → verwijderen")
+                    os.remove(output_name_max)
+                else:
+                    dest_test = None  # netjes sluiten
+            except: 
+                os.remove(output_name_max)                      
+                
+        if os.path.exists(output_name_min) and "min" in data_type:
+            try:
+                dest_test = gdal.Open(output_name_min)
+                if dest_test is None:
+                    print("Corrupt of niet leesbaar TIFF → verwijderen")
+                    os.remove(output_name_min)
+                else:
+                    dest_test = None  # netjes sluiten
+            except: 
+                os.remove(output_name_min)                   
+                
+                
+                
         if not (os.path.exists(output_name) and os.path.exists(output_name_min) and os.path.exists(output_name_max)):
 
             # define total url
             url_GEOS = url_start + 'ascii?%s[%s:1:%s][%s:1:%s][%s:1:%s]' %(Var, IDz_start,IDz_end, int(IDy[0]),int(IDy[1]),int(IDx[0]),int(IDx[1]))
-  
+            print(url_GEOS)
              
             # Reset the begin parameters for downloading
             downloaded = 0
@@ -251,7 +288,7 @@ def DownloadData(Dir, Var, Startdate, Enddate, latlim, lonlim, TimeStep, Period,
                     pathtext = os.path.join(output_folder,'temp%s.txt' %str(IDz_start))
                     
                     # Download the data
-                    #print(url_GEOS)
+                    print(url_GEOS)
                     urllib.request.urlretrieve(url_GEOS, filename=pathtext)
     
                     # Reshape data
